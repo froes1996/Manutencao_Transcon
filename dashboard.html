@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Manutenção</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #0056b3;
+        }
+
+        .filters {
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .filters button {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 5px;
+            font-size: 1rem;
+            transition: background-color 0.2s;
+        }
+
+        .filters button:hover {
+            background-color: #0069d9;
+        }
+
+        .filters button.active {
+            background-color: #0056b3;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: #e9ecef;
+        }
+
+        tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .tag {
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+            text-align: center;
+            display: inline-block;
+        }
+
+        .status.Aberta {
+            background-color: #dc3545;
+        }
+
+        .status.Finalizada {
+            background-color: #28a745;
+        }
+
+        .priority.critica {
+            background-color: #fd7e14;
+        }
+
+        .priority.alta {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+        .priority.media {
+            background-color: #0d6efd;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 25px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 700px;
+            border-radius: 8px;
+            position: relative;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close-button {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+        }
+
+        .detail-img {
+            max-width: 100%;
+            height: auto;
+            margin-top: 1rem;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 10px 20px;
+            align-items: center;
+        }
+
+        .detail-grid strong {
+            font-weight: bold;
+            text-align: right;
+        }
+
+        #finalization-details {
+            margin-top: 1.5rem;
+            border-top: 2px solid #e9ecef;
+            padding-top: 1.5rem;
+        }
+
+        .modal-form label {
+            display: block;
+            font-weight: bold;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .modal-form input,
+        .modal-form textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .modal-form button {
+            width: 100%;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .modal-form button:hover {
+            background-color: #218838;
+        }
+
+        .modal-form button:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Dashboard de Ordens de Serviço</h1>
+        <div class="filters">
+            <button onclick="fetchOrdensServico('Todas')" id="btn-todas" class="active">Todas</button>
+            <button onclick="fetchOrdensServico('Aberta')" id="btn-aberta">Abertas</button>
+            <button onclick="fetchOrdensServico('Finalizada')" id="btn-finalizada">Finalizadas</button>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nº O.S.</th>
+                    <th>Status</th>
+                    <th>Prioridade</th>
+                    <th>Solicitante</th>
+                    <th>Equipamento</th>
+                    <th>Data Abertura</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="os-table-body">
+                <tr>
+                    <td colspan="7" style="text-align:center;">Carregando dados...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="details-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-details-modal">&times;</span>
+            <h2 id="modal-title">Detalhes da Ordem de Serviço</h2>
+            <div class="detail-grid">
+                <strong>Nº O.S.:</strong><span id="os-numero"></span>
+                <strong>Status:</strong><span id="os-status"></span>
+                <strong>Solicitante:</strong><span id="os-solicitante"></span>
+                <strong>Setor:</strong><span id="os-setor"></span>
+                <strong>Equipamento:</strong><span id="os-equipamento"></span>
+                <strong>Localização:</strong><span id="os-localizacao"></span>
+                <strong>Data da Ocorrência:</strong><span id="os-data-ocorrencia"></span>
+                <strong>Data de Abertura:</strong><span id="os-data-abertura"></span>
+                <strong>Descrição do Problema:</strong><span id="os-descricao" style="white-space: pre-wrap;"></span>
+            </div>
+            <h3>Foto do Defeito</h3>
+            <img id="os-foto" class="detail-img" src="" alt="Foto do defeito">
+            <div id="finalization-details" style="display: none;">
+                <h3 style="color: #28a745;">Detalhes da Finalização</h3>
+                <div class="detail-grid">
+                    <strong>Técnico Responsável:</strong><span id="os-tecnico"></span>
+                    <strong>Data de Conclusão:</strong><span id="os-data-conclusao"></span>
+                    <strong>Solução Aplicada:</strong><span id="os-solucao" style="white-space: pre-wrap;"></span>
+                </div>
+                <h3>Foto do Reparo</h3>
+                <img id="os-foto-reparo" class="detail-img" src="" alt="Foto do reparo">
+            </div>
+        </div>
+    </div>
+
+    <div id="finalize-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-finalize-modal">&times;</span>
+            <h2>Finalizar Ordem de Serviço</h2>
+            <form id="finalize-form" class="modal-form">
+                <input type="hidden" id="finalize-os-id" name="os_id">
+                <label for="tecnico_responsavel">Técnico Responsável *</label>
+                <input type="text" id="tecnico_responsavel" name="tecnico_responsavel" required>
+                <label for="solucao_aplicada">Solução Aplicada / Observações *</label>
+                <textarea id="solucao_aplicada" name="solucao_aplicada" rows="4" required></textarea>
+                <label for="foto_reparo">Foto do Reparo Concluído *</label>
+                <input type="file" id="foto_reparo" name="foto_reparo" accept="image/*" required>
+                <button type="submit">Confirmar Finalização</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURAÇÃO E SELEÇÃO DE ELEMENTOS ---
+        const API_URL = 'http://localhost:3000/ordens-servico';
+        const BASE_URL = 'http://localhost:3000';
+        const tableBody = document.getElementById('os-table-body');
+        const filterButtons = document.querySelectorAll('.filters button');
+
+        const detailsModal = document.getElementById('details-modal');
+        const finalizeModal = document.getElementById('finalize-modal');
+
+        const closeDetailsButton = document.getElementById('close-details-modal');
+        const closeFinalizeButton = document.getElementById('close-finalize-modal');
+        const finalizeForm = document.getElementById('finalize-form');
+
+        // --- LÓGICA PARA FECHAR OS MODAIS ---
+        closeDetailsButton.onclick = () => {
+            detailsModal.style.display = 'none';
+        }
+        closeFinalizeButton.onclick = () => {
+            finalizeModal.style.display = 'none';
+            finalizeForm.reset();
+        }
+        window.onclick = (event) => {
+            if (event.target == detailsModal) {
+                detailsModal.style.display = 'none';
+            }
+            if (event.target == finalizeModal) {
+                finalizeModal.style.display = 'none';
+                finalizeForm.reset();
+            }
+        }
+
+        // --- FUNÇÕES PRINCIPAIS DA APLICAÇÃO ---
+
+        // Função para buscar e exibir os detalhes de UMA O.S.
+        async function showDetails(id) {
+            detailsModal.style.display = 'block';
+            document.getElementById('modal-title').textContent = 'Carregando...';
+            const finalizationSection = document.getElementById('finalization-details');
+            finalizationSection.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`);
+                if (!response.ok) throw new Error('O.S. não encontrada');
+                const os = await response.json();
+
+                const dataOcorrencia = new Date(os.data_ocorrencia).toLocaleDateString('pt-BR', {
+                    timeZone: 'UTC'
+                });
+                const dataAbertura = new Date(os.data_criacao).toLocaleString('pt-BR');
+
+                document.getElementById('modal-title').textContent = `Detalhes da O.S. #${os.numero_os}`;
+                document.getElementById('os-numero').textContent = os.numero_os;
+                document.getElementById('os-status').innerHTML =
+                    `<span class="tag status ${os.status.replace(' ', '-')}">${os.status}</span>`;
+                document.getElementById('os-solicitante').textContent = os.solicitante_nome;
+                document.getElementById('os-setor').textContent = os.solicitante_setor;
+                document.getElementById('os-equipamento').textContent = os.equipamento_tag;
+                document.getElementById('os-localizacao').textContent = os.localizacao;
+                document.getElementById('os-data-ocorrencia').textContent = dataOcorrencia;
+                document.getElementById('os-data-abertura').textContent = dataAbertura;
+                document.getElementById('os-descricao').textContent = os.descricao_problema;
+                document.getElementById('os-foto').src = `${BASE_URL}/${os.caminho_foto.replace(/\\/g, '/')}`;
+
+                if (os.status === 'Finalizada') {
+                    document.getElementById('os-tecnico').textContent = os.tecnico_responsavel ||
+                        'Não informado';
+                    document.getElementById('os-data-conclusao').textContent = new Date(os.data_conclusao)
+                        .toLocaleString('pt-BR');
+                    document.getElementById('os-solucao').textContent = os.solucao_aplicada ||
+                        'Não informado';
+
+                    const fotoReparoImg = document.getElementById('os-foto-reparo');
+                    if (os.caminho_foto_reparo) {
+                        fotoReparoImg.src =
+                            `${BASE_URL}/${os.caminho_foto_reparo.replace(/\\/g, '/')}`;
+                        fotoReparoImg.style.display = 'block';
+                    } else {
+                        fotoReparoImg.style.display = 'none';
+                    }
+                    finalizationSection.style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error('Erro ao buscar detalhes da O.S.:', error);
+                document.getElementById('modal-title').textContent = 'Erro ao carregar dados';
+            }
+        }
+
+        // Função para abrir o modal de finalização
+        function openFinalizeModal(id) {
+            document.getElementById('finalize-os-id').value = id;
+            finalizeModal.style.display = 'block';
+        }
+
+        // Event listener para o formulário de finalização
+        finalizeForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const id = document.getElementById('finalize-os-id').value;
+            const formData = new FormData(finalizeForm);
+            const submitButton = finalizeForm.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = "Salvando...";
+
+            try {
+                const response = await fetch(`${API_URL}/${id}/finalizar`, {
+                    method: 'PUT',
+                    body: formData
+                });
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.message || 'Falha ao finalizar O.S.');
+                }
+                alert('Ordem de Serviço finalizada com sucesso!');
+                finalizeModal.style.display = 'none';
+                finalizeForm.reset();
+                // Pega o filtro ativo atualmente para recarregar a lista corretamente
+                const activeFilter = document.querySelector('.filters button.active').id.split('-')[1];
+                fetchOrdensServico(activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1));
+            } catch (error) {
+                console.error('Erro:', error);
+                alert(`Erro: ${error.message}`);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = "Confirmar Finalização";
+            }
+        });
+
+        // Função principal para buscar e renderizar a tabela
+        async function fetchOrdensServico(status = 'Todas') {
+            tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Carregando dados...</td></tr>';
+            try {
+                const response = await fetch(`${API_URL}?status=${status}`);
+                if (!response.ok) throw new Error('Erro na requisição');
+                const data = await response.json();
+                tableBody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tableBody.innerHTML =
+                        '<tr><td colspan="7" style="text-align:center;">Nenhum chamado encontrado.</td></tr>';
+                    return;
+                }
+
+                data.forEach(os => {
+                    const row = document.createElement('tr');
+                    const dataAbertura = new Date(os.data_criacao).toLocaleString('pt-BR');
+
+                    let actionButtons = `<button onclick="showDetails(${os.id})">Ver Detalhes</button>`;
+                    if (os.status === 'Aberta') {
+                        actionButtons +=
+                            ` <button onclick="openFinalizeModal(${os.id})" style="background-color:#28a745;">Finalizar</button>`;
+                    }
+
+                    row.innerHTML = `
+                        <td>${os.numero_os}</td>
+                        <td><span class="tag status ${os.status.replace(' ', '-')}">${os.status}</span></td>
+                        <td><span class="tag priority ${os.prioridade}">${os.prioridade.charAt(0).toUpperCase() + os.prioridade.slice(1)}</span></td>
+                        <td>${os.solicitante_nome}</td>
+                        <td>${os.equipamento_tag}</td>
+                        <td>${dataAbertura}</td>
+                        <td>${actionButtons}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
+                filterButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.id === `btn-${status.toLowerCase()}`) {
+                        btn.classList.add('active');
+                    }
+                });
+
+            } catch (error) {
+                console.error('Erro ao buscar Ordens de Serviço:', error);
+                tableBody.innerHTML =
+                    '<tr><td colspan="7" style="text-align:center; color:red;">Falha ao carregar dados. Verifique o console (F12).</td></tr>';
+            }
+        }
+
+        // Carrega os chamados quando a página é aberta
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchOrdensServico('Todas');
+        });
+    </script>
+
+</body>
+
+</html>
